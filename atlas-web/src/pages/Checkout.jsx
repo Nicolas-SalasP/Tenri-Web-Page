@@ -13,7 +13,6 @@ import api from '../api/axiosConfig';
 import PaymentSelector from '../components/checkout/PaymentSelector';
 import { BASE_URL } from '../api/constants';
 
-// --- CONFIGURACIÓN LEAFLET ---
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 let DefaultIcon = L.icon({
@@ -32,7 +31,6 @@ function RecenterAutomatically({ lat, lng }) {
     return null;
 }
 
-// --- DATOS DE CHILE ---
 const REGIONES_CHILE = {
     "Arica y Parinacota": ["Arica", "Camarones", "Putre", "General Lagos"],
     "Tarapacá": ["Iquique", "Alto Hospicio", "Pozo Almonte", "Camiña", "Colchane", "Huara", "Pica"],
@@ -59,7 +57,6 @@ const TARIFAS_ENVIO = {
     "Los Ríos": 8990, "Los Lagos": 9990, "Aysén": 12990, "Magallanes": 12990
 };
 
-// --- UTILIDADES RUT ---
 const formatearRut = (rut) => {
     let valor = rut.replace(/[.-]/g, '');
     if (valor === '') return '';
@@ -96,7 +93,6 @@ const Checkout = () => {
     const [orderId, setOrderId] = useState(null);
     const [notification, setNotification] = useState({ show: false, type: 'error', title: '', message: '' });
 
-    // ESTADO DEL FORMULARIO
     const [datos, setDatos] = useState({
         nombre: '', apellido: '', email: '',
         telefono: '',
@@ -192,7 +188,8 @@ const Checkout = () => {
                     nombre: `${datos.nombre} ${datos.apellido}`,
                     rut: rutAValidar,
                     email: datos.email,
-                    phone: `+56 ${datos.telefono}`
+                    phone: `+56 ${datos.telefono}`,
+                    region: datos.region
                 }
             };
 
@@ -244,10 +241,7 @@ const Checkout = () => {
                 </div>
 
                 <div className="grid lg:grid-cols-12 gap-8">
-                    {/* FORMULARIO */}
                     <div className="lg:col-span-7 space-y-6">
-
-                        {/* 1. DATOS PERSONALES */}
                         <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                             <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-atlas-900 text-white flex items-center justify-center text-xs">1</span> Datos Personales</h2>
                             <div className="grid md:grid-cols-2 gap-4">
@@ -281,7 +275,6 @@ const Checkout = () => {
                             </div>
                         </section>
 
-                        {/* 2. DIRECCIÓN (REGIONES DINÁMICAS) */}
                         <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                             <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-atlas-900 text-white flex items-center justify-center text-xs">2</span> Envío</h2>
                             <div className="grid md:grid-cols-2 gap-4 mb-6">
@@ -324,7 +317,6 @@ const Checkout = () => {
                             </div>
                         </section>
 
-                        {/* 3. FACTURACIÓN */}
                         <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                             <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-atlas-900 text-white flex items-center justify-center text-xs">3</span> Facturación</h2>
                             <div className="flex gap-4 mb-6">
@@ -346,7 +338,6 @@ const Checkout = () => {
                         </section>
                     </div>
 
-                    {/* RESUMEN DERECHA */}
                     <div className="lg:col-span-5">
                         <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 sticky top-28">
                             <h2 className="text-xl font-bold text-gray-900 mb-6">Resumen</h2>
@@ -375,7 +366,6 @@ const Checkout = () => {
                 </div>
             </div>
 
-            {/* MODAL NOTIFICACIONES */}
             {notification.show && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">

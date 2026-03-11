@@ -74,7 +74,9 @@ class TicketController extends Controller
 
         $request->validate([
             'mensaje' => 'required_without:attachments|string|nullable',
-            'attachments.*' => 'file|max:10240'
+            'attachments.*' => 'file|mimes:jpeg,jpg,png,webp,pdf,doc,docx|max:10240'
+        ], [
+            'attachments.*.mimes' => 'Solo se permiten imágenes (JPG, PNG, WEBP) o documentos (PDF, DOC, DOCX).'
         ]);
 
         $message = $this->ticketService->addReply(

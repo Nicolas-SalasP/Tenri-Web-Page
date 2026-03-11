@@ -63,8 +63,8 @@ class OrderController extends Controller
             'items' => 'required|array',
             'items.*.id' => 'required', 
             'items.*.quantity' => 'required|integer|min:1',
-            'shipping_cost' => 'required|numeric',
             'customer_data' => 'required|array',
+            'customer_data.region' => 'required|string',
         ]);
 
         try {
@@ -125,7 +125,15 @@ class OrderController extends Controller
                 }
             }
 
-            $shipping = $request->shipping_cost;
+            $tarifasEnvio = [
+                "Metropolitana" => 3990, "Valparaíso" => 5990, "Biobío" => 6990, "Arica y Parinacota" => 10990,
+                "Tarapacá" => 10990, "Antofagasta" => 8990, "Atacama" => 7990, "Coquimbo" => 6990,
+                "O'Higgins" => 5990, "Maule" => 6990, "Ñuble" => 6990, "La Araucanía" => 7990,
+                "Los Ríos" => 8990, "Los Lagos" => 9990, "Aysén" => 12990, "Magallanes" => 12990
+            ];
+
+            $regionCliente = $request->customer_data['region'] ?? 'Metropolitana';
+            $shipping = $tarifasEnvio[$regionCliente] ?? 7990; 
             $total = $subtotalOrden + $shipping;
 
             $order = Order::create([

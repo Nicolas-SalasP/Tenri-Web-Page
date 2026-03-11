@@ -7,6 +7,7 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\PaymentController;
@@ -32,9 +33,9 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 // Catálogo Público
 Route::get('/products', [ProductController::class, 'indexPublic']);
 Route::get('/services/catalog', [ServiceController::class, 'indexPublic']);
-Route::get('/categories', function () {
-    return \App\Models\Category::all();
-});
+
+// Categorías
+Route::get('/categories', [CategoryController::class, 'index']);
 
 // Sistema & Configuración Pública
 Route::get('/system-status', [SettingController::class, 'publicStatus']);
@@ -48,7 +49,7 @@ Route::any('/webpay/return', [PaymentController::class, 'commitWebpay']);
 // ==============================================================================
 Route::middleware('auth:sanctum')->group(function () {
 
-    // --- USUARIO GENERAL (CLIENTE) ---
+    // --- USUARIO GENERAL (CLIENTE Y ADMIN) ---
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         return $request->user();
@@ -64,18 +65,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/email/verify', [ProfileController::class, 'verifyEmailChange']);
         
         // Datos del Dashboard Cliente
-        Route::get('/orders', [ProfileController::class, 'getOrders']);
         Route::get('/subscription', [ProfileController::class, 'getSubscription']);
         Route::get('/tickets-summary', [ProfileController::class, 'getTicketsSummary']);
         Route::get('/security-logs', [ProfileController::class, 'getSecurityLogs']);
     });
 
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::get('/orders/{id}', [OrderController::class, 'show']); 
+
     // Tickets (Lado Cliente)
     Route::get('/tickets', [TicketController::class, 'index']);
+    Route::get('/tickets/{id}', [TicketController::class, 'show']);
     Route::post('/tickets', [TicketController::class, 'store']);
     Route::post('/tickets/{id}/reply', [TicketController::class, 'reply']);
 
-    // Pagos (Requieren Auth para asociar al usuario, aunque guest checkout existe arriba)
+    // Pagos (Requieren Auth para asociar al usuario)
     Route::post('/payment/transfer', [PaymentController::class, 'payWithTransfer']);
     Route::post('/payment/webpay', [PaymentController::class, 'initWebpay']);
 
@@ -96,9 +100,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/{id}', [UserController::class, 'show']);
         Route::put('/users/{id}', [UserController::class, 'update']);
-
-        // Gestión de Pedidos (Todas)
-        Route::get('/orders', [OrderController::class, 'index']);
 
         // Gestión de Productos
         Route::get('/products', [ProductController::class, 'index']);
