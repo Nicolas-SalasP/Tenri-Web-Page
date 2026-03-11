@@ -7,9 +7,6 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::disableForeignKeyConstraints();
-        Schema::dropIfExists('addresses');
-        Schema::enableForeignKeyConstraints();
         Schema::create('addresses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
@@ -24,20 +21,17 @@ return new class extends Migration {
         });
 
         Schema::table('orders', function (Blueprint $table) {
-            if (Schema::hasColumn('orders', 'address_id')) {
-                $table->foreign('address_id')
-                    ->references('id')->on('addresses')
-                    ->nullOnDelete();
-            }
+            $table->foreign('address_id', 'fk_orders_address_id') 
+                  ->references('id')
+                  ->on('addresses')
+                  ->onDelete('set null');
         });
     }
 
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            if (Schema::hasColumn('orders', 'address_id')) {
-                $table->dropForeign(['address_id']);
-            }
+            $table->dropForeign('fk_orders_address_id');
         });
         Schema::dropIfExists('addresses');
     }
