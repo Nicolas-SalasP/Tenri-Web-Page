@@ -1,17 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, FileText, Package, CreditCard, Image as ImageIcon, Building2 } from 'lucide-react';
-import api from '../../api/axiosConfig'; // <-- IMPORTANTE: Agregar la importación de la API
+import { X, MapPin, FileText, Package, CreditCard, Image as ImageIcon, Building2, Truck, ExternalLink } from 'lucide-react';
+import api from '../../api/axiosConfig'; 
+
+// --- DICCIONARIOS Y HELPERS PARA TRACKING ---
+const PROVEEDORES_ENVIO = {
+    'propio': 'Reparto Propio / Interno',
+    'bluexpress': 'BlueExpress',
+    'starken': 'Starken',
+    'chilexpress': 'Chilexpress',
+    'correos': 'Correos de Chile'
+};
+
+const getTrackingLink = (provider, code) => {
+    if (!code) return "#";
+    switch (provider) {
+        case 'bluexpress': return `https://www.blue.cl/seguimiento/?codigo=${code}`;
+        case 'starken': return `https://www.starken.cl/seguimiento?codigo=${code}`;
+        case 'chilexpress': return `https://www.chilexpress.cl/Views/ChilexpressCL/Resultado-busqueda.aspx?DATA=${code}`;
+        case 'correos': return `https://www.correos.cl/web/guest/seguimiento-en-linea?objEnvio=${code}`;
+        default: return "#";
+    }
+};
 
 const OrderDetailModal = ({ order, onClose }) => {
-    // --- NUEVO ESTADO PARA EL BANCO ---
     const [bankDetails, setBankDetails] = useState(null);
 
-    // --- EFECTO PARA TRAER LOS DATOS DEL BANCO ---
     useEffect(() => {
         if (order?.payment_method === 'transfer' && order?.status === 'pending') {
             const fetchBankDetails = async () => {
                 try {
-                    // Consultamos el endpoint público de configuración del sistema
                     const { data } = await api.get('/system-status');
                     setBankDetails(data.bank_details || data); 
                 } catch (error) {
@@ -24,10 +41,18 @@ const OrderDetailModal = ({ order, onClose }) => {
 
     if (!order) return null;
 
-    // Helpers locales
     const formatPrice = (amount) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
+    
     const getStatusColor = (status) => {
-        const colors = { paid: 'bg-emerald-100 text-emerald-700', pending: 'bg-amber-50 text-amber-700', shipped: 'bg-blue-50 text-blue-700', cancelled: 'bg-red-50 text-red-700', delivered: 'bg-gray-100 text-gray-700' };
+        const colors = { 
+            paid: 'bg-emerald-100 text-emerald-700', 
+            pending: 'bg-amber-50 text-amber-700', 
+            preparing: 'bg-blue-50 text-blue-700',
+            shipped: 'bg-indigo-100 text-indigo-700', 
+            cancelled: 'bg-red-50 text-red-700', 
+            delivered: 'bg-gray-100 text-gray-700',
+            refunded: 'bg-rose-100 text-rose-700'
+        };
         return colors[status] || 'bg-gray-50';
     };
 
@@ -54,7 +79,7 @@ const OrderDetailModal = ({ order, onClose }) => {
                         </div>
                     </div>
 
-                    {/* --- NUEVA CAJA: DATOS DE TRANSFERENCIA (Solo si está pendiente y es transferencia) --- */}
+                    {/* DATOS DE TRANSFERENCIA */}
                     {order.payment_method === 'transfer' && order.status === 'pending' && (
                         <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm animate-in fade-in">
                             <h4 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
@@ -78,6 +103,43 @@ const OrderDetailModal = ({ order, onClose }) => {
                                     Cargando datos bancarios...
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {/* --- ESTADO DEL DESPACHO / TRACKING --- */}
+                    {(order.shipping_provider || order.tracking_number) && (
+                        <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in">
+                            <h4 className="font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                                <Truck size={20} /> Información de Despacho
+                            </h4>
+                            <div className="bg-white p-5 rounded-xl border border-indigo-100/50 flex flex-col sm:flex-row gap-6 sm:items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-bold text-indigo-400 uppercase mb-1">Empresa de Envío</p>
+                                    <p className="font-bold text-gray-900 text-lg">
+                                        {PROVEEDORES_ENVIO[order.shipping_provider] || order.shipping_provider || 'No asignado'}
+                                    </p>
+                                </div>
+                                
+                                {order.tracking_number && (
+                                    <div className="flex-1 border-t sm:border-t-0 sm:border-l border-gray-100 pt-4 sm:pt-0 sm:pl-6">
+                                        <p className="text-xs font-bold text-indigo-400 uppercase mb-1">Código de Seguimiento</p>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <p className="font-mono font-black text-atlas-900 text-xl tracking-wider">{order.tracking_number}</p>
+                                            
+                                            {order.shipping_provider && order.shipping_provider !== 'propio' && (
+                                                <a 
+                                                    href={getTrackingLink(order.shipping_provider, order.tracking_number)} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm"
+                                                >
+                                                    Rastrear Envío <ExternalLink size={16}/>
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 

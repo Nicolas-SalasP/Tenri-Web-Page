@@ -179,4 +179,38 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+    public function update(Request $request, $id)
+    {
+        $user = auth('sanctum')->user();
+
+        if (!$user || $user->role_id !== 1) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $order = Order::find($id);
+
+        if (!$order) {
+            return response()->json(['message' => 'Orden no encontrada'], 404);
+        }
+        if ($request->has('status')) {
+            $order->status = $request->status;
+        }
+        if ($request->has('notes')) {
+            $order->notes = $request->notes;
+        }
+        if ($request->has('shipping_provider')) {
+            $order->shipping_provider = $request->shipping_provider;
+        }
+        if ($request->has('tracking_number')) {
+            $order->tracking_number = $request->tracking_number;
+        }
+
+        $order->save();
+
+        return response()->json([
+            'message' => 'Orden actualizada exitosamente',
+            'order' => $order
+        ]);
+    }
 }

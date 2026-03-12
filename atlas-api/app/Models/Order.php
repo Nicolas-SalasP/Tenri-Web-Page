@@ -20,7 +20,9 @@ class Order extends Model
         'status',
         'shipping_address',
         'customer_data',
-        'notes'
+        'notes',
+        'shipping_provider', 
+        'tracking_number',
     ];
 
     protected $casts = [

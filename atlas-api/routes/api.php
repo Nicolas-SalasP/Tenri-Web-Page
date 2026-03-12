@@ -81,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Órdenes (Listar y Detalle blindado - Viene de MAIN)
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{id}', [OrderController::class, 'show']); 
+    Route::put('/orders/{id}', [OrderController::class, 'update']);
 
     // Tickets (Lado Cliente)
     Route::get('/tickets', [TicketController::class, 'index']);
