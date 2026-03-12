@@ -9,8 +9,6 @@ const AdminPedidos = () => {
     const [pedidos, setPedidos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [busqueda, setBusqueda] = useState("");
-
-    // Drawer Detalle
     const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
 
     useEffect(() => {
@@ -19,7 +17,7 @@ const AdminPedidos = () => {
 
     const cargarPedidos = async () => {
         try {
-            const response = await api.get('/admin/orders');
+            const response = await api.get('/orders');
             setPedidos(response.data);
         } catch (error) {
             console.error("Error:", error);
@@ -37,14 +35,11 @@ const AdminPedidos = () => {
 
     return (
         <div className="h-[calc(100vh-80px)] p-6 md:p-10 bg-gray-50/50 flex flex-col overflow-hidden relative">
-
-            {/* Header */}
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-gray-900">Gestión de Pedidos</h1>
                 <p className="text-gray-500">Historial global de ventas</p>
             </div>
 
-            {/* Tabla Contenedor */}
             <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-100/50 border border-gray-100 flex flex-col flex-1 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
                     <div className="relative max-w-md">
@@ -90,7 +85,6 @@ const AdminPedidos = () => {
                 </div>
             </div>
 
-            {/* DRAWER DETALLE PEDIDO */}
             <div className={`fixed inset-y-0 right-0 w-full md:w-[500px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ${pedidoSeleccionado ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
                 {pedidoSeleccionado && (
                     <>
@@ -134,7 +128,6 @@ const AdminPedidos = () => {
                     </>
                 )}
             </div>
-            {/* Backdrop */}
             {pedidoSeleccionado && <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setPedidoSeleccionado(null)} />}
         </div>
     );

@@ -57,10 +57,19 @@ class UserController extends Controller
             'name' => 'required|string',
             'email' => 'required|email|unique:users,email,'.$id,
             'role_id' => 'required|integer',
-            'is_active' => 'required|boolean'
+            'is_active' => 'required|boolean',
+            'permissions' => 'nullable|array'
         ]);
 
-        $user->update($request->only(['name', 'email', 'role_id', 'is_active', 'company_name', 'phone']));
+        $user->update($request->only([
+            'name', 
+            'email', 
+            'role_id', 
+            'is_active', 
+            'company_name', 
+            'phone', 
+            'permissions'
+        ]));
 
         return response()->json($user);
     }
