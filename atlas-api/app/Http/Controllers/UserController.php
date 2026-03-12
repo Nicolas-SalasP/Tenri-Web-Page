@@ -49,6 +49,10 @@ class UserController extends Controller
         $user = User::find($id);
         if (!$user) return response()->json(['message' => 'Usuario no encontrado'], 404);
 
+        if ($user->email === 'nsalas@atlasdigitaltech.cl' && $request->role_id != 1) {
+            return response()->json(['message' => 'Operación denegada. El Super Admin no puede ser degradado.'], 403);
+        }
+
         $request->validate([
             'name' => 'required|string',
             'email' => 'required|email|unique:users,email,'.$id,
