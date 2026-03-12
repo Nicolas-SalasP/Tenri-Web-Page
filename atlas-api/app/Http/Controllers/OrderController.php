@@ -145,6 +145,7 @@ class OrderController extends Controller
                 'total' => $total,
                 'shipping_address' => $request->shipping_address,
                 'customer_data' => $request->customer_data,
+                'notes' => $request->notes,
             ]);
 
             foreach ($itemsToInsert as $itemData) {
