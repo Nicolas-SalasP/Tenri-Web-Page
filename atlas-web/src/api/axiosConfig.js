@@ -11,33 +11,27 @@ const api = axios.create({
     withCredentials: true
 });
 
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
-
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response) {
             const { status } = error.response;
 
+            // 1. Manejo del Modo Mantenimiento
             if (status === 503) {
                 if (window.location.pathname !== '/mantenimiento' && !window.location.pathname.startsWith('/admin')) {
                     window.location.href = '/mantenimiento';
                 }
             }
 
+            // 2. Manejo de Sesión Expirada o Inválida
             if (status === 401) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
+                localStorage.removeItem('user_data');
+                localStorage.removeItem('pending_claims');
                 sessionStorage.clear();
+                if (window.location.pathname !== '/login' && window.location.pathname !== '/registro') {
+                     window.location.href = '/login';
+                }
             }
         }
         return Promise.reject(error);
