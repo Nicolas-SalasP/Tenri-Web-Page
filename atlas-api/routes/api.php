@@ -65,6 +65,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/password', [ProfileController::class, 'changePassword']);
         Route::post('/email/request', [ProfileController::class, 'requestEmailChange']);
         Route::post('/email/verify', [ProfileController::class, 'verifyEmailChange']);
+        Route::post('/claim-orders/request-otp', [AuthController::class, 'requestOrderClaimOtp']);
+        Route::post('/claim-orders/confirm', [AuthController::class, 'confirmOrderClaim']);
         
         // Datos del Dashboard Cliente
         Route::get('/subscription', [ProfileController::class, 'getSubscription']);

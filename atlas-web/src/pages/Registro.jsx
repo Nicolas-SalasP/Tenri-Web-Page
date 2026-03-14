@@ -34,7 +34,7 @@ const validarRutChileno = (rut) => {
 const Registro = () => {
     const navigate = useNavigate();
     const { register } = useAuth(); // Usamos la función del Contexto
-    
+
     const [formData, setFormData] = useState({
         name: '',
         rut: '',
@@ -51,7 +51,7 @@ const Registro = () => {
         const rawValue = e.target.value.replace(/[^0-9kK]/g, '');
         const formatted = formatearRut(rawValue);
         setFormData({ ...formData, rut: formatted });
-        
+
         if (formatted.length > 8 && !validarRutChileno(formatted)) {
             setErrorRut(true);
         } else {
@@ -65,49 +65,65 @@ const Registro = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!validarRutChileno(formData.rut)) {
-            setModal({
-                open: true,
-                type: 'error',
-                title: 'RUT Inválido',
-                message: 'Por favor, ingresa un RUT chileno válido.'
-            });
+            setModal({ open: true, type: 'error', title: 'RUT Inválido', message: 'Por favor, ingresa un RUT chileno válido.' });
             return;
         }
 
         if (formData.password !== formData.password_confirmation) {
-            setModal({
-                open: true,
-                type: 'error',
-                title: 'Error de Validación',
-                message: 'Las contraseñas no coinciden. Por favor verifícalas.'
-            });
+            setModal({ open: true, type: 'error', title: 'Error', message: 'Las contraseñas no coinciden.' });
             return;
         }
 
         setIsSubmitting(true);
 
         try {
-            await register(formData);
+            const result = await register(formData);
+            if (result.requires_order_claim) {
+                localStorage.setItem('pending_claims', JSON.stringify(result.claimable_emails));
 
-            setModal({
-                open: true,
-                type: 'success',
-                title: '¡Cuenta Creada!',
-                message: 'Tu registro ha sido exitoso. Entrando al sistema...'
-            });
+                setModal({
+                    open: true,
+                    type: 'success',
+                    title: '¡Cuenta Creada!',
+                    message: 'Hemos detectado compras previas asociadas a tu RUT. Redirigiendo para vincularlas...'
+                });
 
-            setTimeout(() => {
-                navigate('/perfil'); // Al registrarse con éxito, el AuthContext ya los loguea
-            }, 2000);
+                setTimeout(() => {
+                    navigate('/perfil', {
+                        state: {
+                            showClaimModal: true,
+                            claimableEmails: result.claimable_emails
+                        }
+                    });
+                }, 2500);
+            } else {
+                setModal({
+                    open: true,
+                    type: 'success',
+                    title: '¡Cuenta Creada!',
+                    message: 'Tu registro ha sido exitoso. Entrando al sistema...'
+                });
+
+                setTimeout(() => {
+                    navigate('/perfil');
+                }, 2000);
+            }
 
         } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Hubo un problema al crear tu cuenta.';
+            let errorMessage = 'Hubo un problema al crear tu cuenta.';
+            if (error.response?.data?.errors) {
+                const primerError = Object.values(error.response.data.errors)[0][0];
+                errorMessage = primerError;
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+
             setModal({
                 open: true,
                 type: 'error',
-                title: 'Error al registrar',
+                title: 'No pudimos registrarte',
                 message: errorMessage
             });
             setIsSubmitting(false);
@@ -115,7 +131,6 @@ const Registro = () => {
     };
 
     return (
-        // Usamos py-36 para que no quede pegado al navbar
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4 py-36">
             <AlertModal
                 isOpen={modal.open}
@@ -231,12 +246,11 @@ const Registro = () => {
                     </div>
 
                     <div className="pt-2">
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             disabled={isSubmitting}
-                            className={`w-full font-bold py-3 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 ${
-                                isSubmitting ? 'bg-atlas-800 text-gray-300 cursor-wait' : 'bg-atlas-900 text-white hover:bg-atlas-800 hover:shadow-xl'
-                            }`}
+                            className={`w-full font-bold py-3 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 ${isSubmitting ? 'bg-atlas-800 text-gray-300 cursor-wait' : 'bg-atlas-900 text-white hover:bg-atlas-800 hover:shadow-xl'
+                                }`}
                         >
                             {isSubmitting ? (
                                 <><Loader2 size={20} className="animate-spin" /> Creando cuenta...</>

@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\CheckMaintenanceMode;
 use App\Http\Middleware\AdminOnly;
 
@@ -15,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->trustProxies(at: '*');
+        $middleware->append(SecurityHeaders::class);
         $middleware->api(prepend: [
             CheckMaintenanceMode::class,
         ]);
