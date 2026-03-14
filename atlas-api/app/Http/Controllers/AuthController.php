@@ -10,6 +10,9 @@ use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OrderClaimOtp;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Auth\Events\PasswordReset;
 
@@ -24,7 +27,6 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        // Usamos la validación detallada de tu rama DEV
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -51,42 +53,159 @@ class AuthController extends Controller
             'is_active' => true
         ]);
 
-        // Lógica de DEV: Vincular órdenes pasadas usando el RUT
-        if (!empty($user->rut)) {
-            Order::where('rut', $user->rut)
-                ->whereNull('user_id')
-                ->update(['user_id' => $user->id]);
-        }
-
         $token = $user->createToken('auth_token')->plainTextToken;
         $this->logAccess($request, $user->id, 'Registro Exitoso');
 
-        // Formato de respuesta alineado para que el frontend no falle
+        $requiresClaim = false;
+        $maskedEmails = [];
+
+        if (!empty($user->rut)) {
+            $unlinkedOrders = Order::where('rut', $user->rut)->whereNull('user_id')->get();
+
+            if ($unlinkedOrders->isNotEmpty()) {
+                foreach ($unlinkedOrders as $order) {
+                    $customerData = $order->customer_data;
+                    if (is_string($customerData)) { $customerData = json_decode($customerData, true); }
+                    if (is_string($customerData)) { $customerData = json_decode($customerData, true); }
+                    $email = $customerData['email'] ?? null;
+                    
+                    if ($email) {
+                        $parts = explode('@', $email);
+                        if (count($parts) === 2) {
+                            $name = $parts[0];
+                            $domain = $parts[1];
+                            $maskedName = substr($name, 0, 1) . str_repeat('*', max(strlen($name) - 2, 1)) . substr($name, -1);
+                            $maskedEmails[] = $maskedName . '@' . $domain;
+                        }
+                    }
+                }
+                
+                if (count($maskedEmails) > 0) {
+                    $requiresClaim = true;
+                }
+            }
+        }
+
         return response()->json([
             'message' => 'Cuenta creada exitosamente',
             'data' => [
                 'user' => $user,
                 'token' => $token,
-                'role' => 'cliente'
+                'role' => 'cliente',
+                'requires_order_claim' => $requiresClaim,
+                'claimable_emails' => array_values(array_unique($maskedEmails))
             ]
         ], 201);
     }
 
+    public function requestOrderClaimOtp(Request $request)
+    {
+        $request->validate(['historical_email' => 'required|email']);
+        $user = $request->user();
+
+        $hasOrders = Order::where('rut', $user->rut)->whereNull('user_id')->get()->contains(function ($order) use ($request) {
+            $data = $order->customer_data;
+            if (is_string($data)) { $data = json_decode($data, true); }
+            if (is_string($data)) { $data = json_decode($data, true); }
+            return ($data['email'] ?? '') === $request->historical_email;
+        });
+
+        if (!$hasOrders) {
+            return response()->json(['message' => 'Si hay órdenes asociadas, hemos enviado un código.'], 200);
+        }
+
+        $otp = rand(100000, 999999);
+        $cacheKey = 'order_claim_otp_' . $user->id . '_' . $request->historical_email;
+        Cache::put($cacheKey, $otp, now()->addMinutes(15));
+        
+        Mail::to($request->historical_email)->send(new OrderClaimOtp($otp));
+
+        return response()->json(['message' => 'Si hay órdenes asociadas, hemos enviado un código.'], 200);
+    }
+
+    public function confirmOrderClaim(Request $request)
+    {
+        $request->validate([
+            'historical_email' => 'required|email',
+            'otp' => 'required|numeric|digits:6',
+        ]);
+
+        $user = $request->user();
+        $cacheKey = 'order_claim_otp_' . $user->id . '_' . $request->historical_email;
+        $cachedOtp = Cache::get($cacheKey);
+
+        if (!$cachedOtp || $cachedOtp != $request->otp) {
+            return response()->json(['message' => 'El código es incorrecto o ha expirado.'], 400);
+        }
+
+        $ordersToUpdate = Order::where('rut', $user->rut)->whereNull('user_id')->get()->filter(function ($order) use ($request) {
+            $data = $order->customer_data;
+            if (is_string($data)) { $data = json_decode($data, true); }
+            if (is_string($data)) { $data = json_decode($data, true); }
+            return ($data['email'] ?? '') === $request->historical_email;
+        });
+
+        $updatedCount = 0;
+        foreach ($ordersToUpdate as $order) {
+            $order->update(['user_id' => $user->id]);
+            $updatedCount++;
+        }
+
+        Cache::forget($cacheKey);
+
+        return response()->json([
+            'message' => "Se han vinculado $updatedCount órdenes a tu cuenta exitosamente.",
+            'updated_orders' => $updatedCount
+        ]);
+    }
+
     public function login(Request $request)
     {
-        // Usamos el login optimizado de MAIN
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
         ]);
 
         $data = $this->authService->login($request->email, $request->password);
-        $user = auth()->user(); 
+        $user = User::where('email', $request->email)->first(); 
 
-        $userId = $user ? $user->id : ($data['user']['id'] ?? null);
-        
-        if ($userId) {
-            $this->logAccess($request, $userId, 'Inicio de Sesión Exitoso');
+        $requiresClaim = false;
+        $maskedEmails = [];
+
+        if ($user) {
+            $this->logAccess($request, $user->id, 'Inicio de Sesión Exitoso');
+            if (!empty($user->rut)) {
+                $unlinkedOrders = Order::where('rut', $user->rut)->whereNull('user_id')->get();
+
+                if ($unlinkedOrders->isNotEmpty()) {
+                    foreach ($unlinkedOrders as $order) {
+                        $customerData = $order->customer_data;
+                        if (is_string($customerData)) { $customerData = json_decode($customerData, true); }
+                        if (is_string($customerData)) { $customerData = json_decode($customerData, true); }
+                        
+                        $email = $customerData['email'] ?? null;
+                        
+                        if ($email) {
+                            $parts = explode('@', $email);
+                            if (count($parts) === 2) {
+                                $name = $parts[0];
+                                $domain = $parts[1];
+                                $maskedName = substr($name, 0, 1) . str_repeat('*', max(strlen($name) - 2, 1)) . substr($name, -1);
+                                $maskedEmails[] = $maskedName . '@' . $domain;
+                            }
+                        }
+                    }
+                    
+                    if (count($maskedEmails) > 0) {
+                        $requiresClaim = true;
+                    }
+                }
+            }
+        }
+
+        if (is_array($data)) {
+            $data['requires_order_claim'] = $requiresClaim;
+            $data['claimable_emails'] = array_values(array_unique($maskedEmails));
         }
 
         return response()->json([
@@ -110,8 +229,6 @@ class AuthController extends Controller
     {
         return response()->json($request->user()->load('role'));
     }
-
-    // --- MÉTODOS DE SEGURIDAD: RECUPERACIÓN DE CONTRASEÑA (Desde MAIN) ---
 
     public function sendResetLink(Request $request)
     {

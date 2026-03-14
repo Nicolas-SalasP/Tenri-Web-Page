@@ -9,6 +9,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
     const navigate = useNavigate();
 
+    // 1. Inicialización del usuario desde el almacenamiento
     const [user, setUser] = useState(() => {
         try {
             const savedUser = localStorage.getItem('user_data') || sessionStorage.getItem('user_data');
@@ -21,10 +22,11 @@ export const AuthProvider = ({ children }) => {
 
     const [loading, setLoading] = useState(true);
 
+    // 2. Verificación de sesión activa al recargar la página
     useEffect(() => {
         const checkAuth = async () => {
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-            
+
             if (!token) {
                 setLoading(false);
                 return;
@@ -34,7 +36,7 @@ export const AuthProvider = ({ children }) => {
                 api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
                 const response = await api.get('/user');
                 const userData = response.data.data || response.data;
-                
+
                 if (userData && userData.role_id) {
                     userData.role_id = Number(userData.role_id);
                 }
@@ -56,30 +58,35 @@ export const AuthProvider = ({ children }) => {
         checkAuth();
     }, []);
 
+    // 3. Función de Registro
     const register = async (formData) => {
         try {
             const response = await api.post('/register', formData);
-            const { user: userData, access_token } = response.data;
-            
-            if (!access_token || !userData) {
-                throw new Error("Respuesta de registro incompleta");
+            const payload = response.data.data || response.data;
+            const userData = payload.user;
+            const token = payload.token || payload.access_token;
+
+            if (!token || !userData) {
+                throw new Error("Respuesta de registro incompleta desde el servidor");
             }
-            localStorage.setItem('token', access_token);
+
+            localStorage.setItem('token', token);
             localStorage.setItem('user_data', JSON.stringify(userData));
-            api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-            
+            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
             setUser(userData);
-            return userData;
+            return payload; 
         } catch (error) {
             console.error("Error en registro:", error);
             throw error;
         }
     };
 
+    // 4. Función de Inicio de Sesión
     const login = async (email, password, remember) => {
         try {
-            const response = await api.post('/login', { 
-                email, 
+            const response = await api.post('/login', {
+                email,
                 password,
                 remember_me: remember
             });
@@ -108,9 +115,15 @@ export const AuthProvider = ({ children }) => {
             const storage = remember ? localStorage : sessionStorage;
             storage.setItem('token', token);
             storage.setItem('user_data', JSON.stringify(userData));
+            const payloadData = response.data.data || response.data;
+            if (payloadData.requires_order_claim) {
+                localStorage.setItem('pending_claims', JSON.stringify(payloadData.claimable_emails));
+            } else {
+                localStorage.removeItem('pending_claims');
+            }
 
             api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            
+
             setUser(userData);
             return userData;
         } catch (error) {
@@ -119,6 +132,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // 5. Función de Cierre de Sesión
     const logout = async () => {
         try {
             await api.post('/logout');
@@ -127,7 +141,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             localStorage.clear();
             sessionStorage.clear();
-            
+
             delete api.defaults.headers.common['Authorization'];
             setUser(null);
             navigate('/login');
