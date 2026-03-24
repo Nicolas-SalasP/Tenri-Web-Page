@@ -7,6 +7,11 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import SystemAlert from './components/SystemAlert';
 import api from './api/axiosConfig';
+import Terminos from './pages/legal/Terminos';
+import Privacidad from './pages/legal/Privacidad';
+import SLA from './pages/legal/SLA';
+import Seguridad from './pages/legal/Seguridad';
+import ScrollToTop from './components/ScrollToTop';
 
 // Lazy Imports
 const Home = lazy(() => import('./pages/Home'));
@@ -78,6 +83,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <AuthProvider>
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -94,6 +100,10 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Registro />} />
               <Route path="/recuperar" element={<Recuperar />} />
+              <Route path="/terminos-y-condiciones" element={<Terminos />} />
+              <Route path="/politica-privacidad" element={<Privacidad />} />
+              <Route path="/acuerdo-nivel-servicio" element={<SLA />} />
+              <Route path="/seguridad-informacion" element={<Seguridad />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/mis-tickets" element={<MisTickets />} />
@@ -114,7 +124,6 @@ function App() {
               </Route>
             </Route>
 
-            {/* RUTA COMODÍN (404 encubierto) */}
             <Route path="*" element={<Navigate to="/" replace />} />
 
           </Routes>
