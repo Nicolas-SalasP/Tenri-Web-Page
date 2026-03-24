@@ -33,6 +33,7 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'rut' => 'required|string|max:20|unique:users',
             'password' => 'required|string|min:8|confirmed',
+            'accept_terms' => 'required|accepted',
         ], [
             'name.required' => 'El nombre es obligatorio.',
             'email.required' => 'El correo es obligatorio.',
@@ -43,6 +44,8 @@ class AuthController extends Controller
             'password.required' => 'La contraseña es obligatoria.',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'Las contraseñas no coinciden.',
+            'accept_terms.required' => 'Debes aceptar los Términos y Condiciones y Políticas de Privacidad.',
+            'accept_terms.accepted' => 'Debes aceptar los Términos y Condiciones y Políticas de Privacidad.',
         ]);
 
         $user = User::create([
@@ -51,7 +54,9 @@ class AuthController extends Controller
             'rut' => $validatedData['rut'],
             'password' => Hash::make($validatedData['password']),
             'role_id' => 2,
-            'is_active' => true
+            'is_active' => true,
+            'terms_accepted_at' => now(),
+            'terms_accepted_ip' => $request->ip()
         ]);
 
         Auth::login($user);

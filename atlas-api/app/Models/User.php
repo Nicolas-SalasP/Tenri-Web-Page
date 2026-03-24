@@ -24,13 +24,16 @@ class User extends Authenticatable
         'avatar',
         'company_name',
         'phone',
-        'address'
+        'address',
+        'terms_accepted_at',
+        'terms_accepted_ip'
     ];
 
     protected $casts = [
         'permissions' => 'array', 
         'is_active' => 'boolean',
         'password' => 'hashed',
+        'terms_accepted_at' => 'datetime',
     ];
 
     public function role()

@@ -25,6 +25,8 @@ class Order extends Model
         'tracking_number',
         'transfer_reference', 
         'transfer_date',
+        'terms_accepted_at',
+        'terms_accepted_ip',
     ];
 
     protected $casts = [
@@ -32,6 +34,7 @@ class Order extends Model
         'subtotal' => 'integer',
         'shipping_cost' => 'integer',
         'total' => 'integer',
+        'terms_accepted_at' => 'datetime',
     ];
 
     public function user()

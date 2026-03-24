@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, UserPlus, CreditCard, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, UserPlus, CreditCard, Loader2, X } from 'lucide-react';
 import AlertModal from '../components/AlertModal';
 import { useAuth } from '../context/AuthContext';
+import Terminos from './legal/Terminos';
+import Privacidad from './legal/Privacidad';
+import SLA from './legal/SLA';
 
-// --- UTILIDADES RUT (Rescatadas de Main para máxima precisión) ---
 const formatearRut = (rut) => {
     let valor = rut.replace(/[.-]/g, '');
     if (valor === '') return '';
@@ -33,17 +35,20 @@ const validarRutChileno = (rut) => {
 
 const Registro = () => {
     const navigate = useNavigate();
-    const { register } = useAuth(); // Usamos la función del Contexto
+    const { register } = useAuth(); 
 
     const [formData, setFormData] = useState({
         name: '',
         rut: '',
         email: '',
         password: '',
-        password_confirmation: '' // Usamos el nombre que espera Laravel
+        password_confirmation: '',
+        accept_terms: false
     });
 
     const [modal, setModal] = useState({ open: false, type: 'success', title: '', message: '' });
+    const [legalModal, setLegalModal] = useState({ open: false, type: '' });
+    
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorRut, setErrorRut] = useState(false);
 
@@ -63,6 +68,10 @@ const Registro = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleCheckboxChange = (e) => {
+        setFormData({ ...formData, accept_terms: e.target.checked });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -79,7 +88,7 @@ const Registro = () => {
         setIsSubmitting(true);
 
         try {
-            const result = await register(formData);
+            const result = await register(formData);          
             if (result.requires_order_claim) {
                 localStorage.setItem('pending_claims', JSON.stringify(result.claimable_emails));
 
@@ -131,7 +140,7 @@ const Registro = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4 py-36">
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4 py-36 relative">
             <AlertModal
                 isOpen={modal.open}
                 onClose={() => setModal({ ...modal, open: false })}
@@ -139,6 +148,42 @@ const Registro = () => {
                 title={modal.title}
                 message={modal.message}
             />
+
+            {/* Modal Interactivo para Documentos Legales */}
+            {legalModal.open && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 sm:p-6">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden relative">
+                        <div className="flex justify-between items-center p-4 sm:px-6 border-b border-gray-200 bg-gray-50">
+                            <h2 className="text-xl font-bold text-gray-800 uppercase tracking-wide">
+                                {legalModal.type === 'terminos' && 'Términos y Condiciones'}
+                                {legalModal.type === 'privacidad' && 'Política de Privacidad'}
+                                {legalModal.type === 'sla' && 'Acuerdo de Nivel de Servicio (SLA)'}
+                            </h2>
+                            <button 
+                                onClick={() => setLegalModal({ open: false, type: '' })} 
+                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto w-full relative document-modal-content">
+                            {legalModal.type === 'terminos' && <Terminos />}
+                            {legalModal.type === 'privacidad' && <Privacidad />}
+                            {legalModal.type === 'sla' && <SLA />}
+                        </div>
+
+                        <div className="p-4 sm:px-6 border-t border-gray-200 bg-white flex justify-end">
+                            <button 
+                                onClick={() => setLegalModal({ open: false, type: '' })} 
+                                className="bg-atlas-900 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-atlas-800 transition-colors shadow-md"
+                            >
+                                Entendido, cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
                 <div className="text-center mb-8">
@@ -245,11 +290,41 @@ const Registro = () => {
                         </div>
                     </div>
 
+                    {/* CHECKBOX DE TÉRMINOS Y CONDICIONES */}
+                    <div className="flex items-start gap-3 pt-3 pb-1">
+                        <input
+                            type="checkbox"
+                            id="accept_terms"
+                            name="accept_terms"
+                            required
+                            checked={formData.accept_terms}
+                            onChange={handleCheckboxChange}
+                            className="mt-1 w-5 h-5 text-atlas-600 border-gray-300 rounded focus:ring-atlas-500 cursor-pointer"
+                        />
+                        <label htmlFor="accept_terms" className="text-sm text-gray-600 leading-snug">
+                            He leído y acepto los{' '}
+                            <button type="button" onClick={() => setLegalModal({ open: true, type: 'terminos' })} className="font-bold text-atlas-600 hover:text-atlas-900 underline">
+                                Términos y Condiciones
+                            </button>
+                            , la{' '}
+                            <button type="button" onClick={() => setLegalModal({ open: true, type: 'privacidad' })} className="font-bold text-atlas-600 hover:text-atlas-900 underline">
+                                Política de Privacidad
+                            </button>
+                            {' '}y el{' '}
+                            <button type="button" onClick={() => setLegalModal({ open: true, type: 'sla' })} className="font-bold text-atlas-600 hover:text-atlas-900 underline">
+                                SLA
+                            </button>.
+                        </label>
+                    </div>
+
                     <div className="pt-2">
                         <button
                             type="submit"
-                            disabled={isSubmitting}
-                            className={`w-full font-bold py-3 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 ${isSubmitting ? 'bg-atlas-800 text-gray-300 cursor-wait' : 'bg-atlas-900 text-white hover:bg-atlas-800 hover:shadow-xl'
+                            disabled={isSubmitting || !formData.accept_terms}
+                            className={`w-full font-bold py-3 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 
+                                ${isSubmitting || !formData.accept_terms 
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                    : 'bg-atlas-900 text-white hover:bg-atlas-800 hover:shadow-xl'
                                 }`}
                         >
                             {isSubmitting ? (

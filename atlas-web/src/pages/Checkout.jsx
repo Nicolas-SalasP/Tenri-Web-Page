@@ -12,11 +12,10 @@ import L from 'leaflet';
 import api from '../api/axiosConfig';
 import PaymentSelector from '../components/checkout/PaymentSelector';
 import { BASE_URL } from '../api/constants';
-
-// --- IMPORTACIONES CENTRALIZADAS ---
+import Terminos from './legal/Terminos';
+import Privacidad from './legal/Privacidad';
+import SLA from './legal/SLA';
 import { REGIONES_CHILE, TARIFAS_ENVIO } from '../api/chileData';
-
-// --- CONFIGURACIÓN MAPA ---
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 let DefaultIcon = L.icon({ iconUrl: icon, shadowUrl: iconShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
@@ -64,6 +63,7 @@ const Checkout = () => {
     const [buscandoDireccion, setBuscandoDireccion] = useState(false);
     const [orderId, setOrderId] = useState(null);
     const [notification, setNotification] = useState({ show: false, type: 'error', title: '', message: '' });
+    const [legalModal, setLegalModal] = useState({ open: false, type: '' });
 
     // --- ESTADO UNIFICADO ---
     const [datos, setDatos] = useState({
@@ -73,7 +73,8 @@ const Checkout = () => {
         region: "Metropolitana",
         comuna: "Santiago",
         tipoDocumento: 'boleta', rutEmpresa: '', razonSocial: '', giro: '',
-        notas: '' // <-- CAMPO DE NOTAS
+        notas: '',
+        accept_terms: false
     });
 
     const [errorRut, setErrorRut] = useState(false);
@@ -132,7 +133,12 @@ const Checkout = () => {
     const iva = totalConEnvio - neto;
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type, checked } = e.target;
+        if (type === 'checkbox') {
+            setDatos(prev => ({ ...prev, [name]: checked }));
+            return;
+        }
+
         if (['direccion', 'numero', 'region', 'comuna'].includes(name)) setDireccionSeleccionadaId(null);
 
         setDatos(prev => {
@@ -192,6 +198,10 @@ const Checkout = () => {
             showModal('error', 'Falta Teléfono', 'Por favor ingresa un número de contacto.');
             return;
         }
+        if (!datos.accept_terms) {
+            showModal('error', 'Términos Requeridos', 'Debes aceptar los Términos y Condiciones para continuar.');
+            return;
+        }
 
         setProcesando(true);
         try {
@@ -206,7 +216,8 @@ const Checkout = () => {
                     phone: `+56 ${datos.telefono}`,
                     region: datos.region
                 },
-                notes: datos.notas // <-- ENVÍO DE NOTAS AL BACKEND
+                notes: datos.notas,
+                terms_accepted: true
             };
 
             const { data } = await api.post('/orders', orderPayload);
@@ -244,7 +255,44 @@ const Checkout = () => {
     if (cart.length === 0) return <div className="min-h-screen pt-24 text-center flex flex-col items-center justify-center"><h2 className="text-2xl font-bold mb-4">Carrito Vacío</h2><button onClick={() => navigate('/catalogo')} className="text-atlas-900 underline">Ir al catálogo</button></div>;
 
     return (
-        <div className="bg-gray-50 min-h-screen pt-28 pb-20">
+        <div className="bg-gray-50 min-h-screen pt-28 pb-20 relative">
+            
+            {/* Modal Interactivo para Documentos Legales */}
+            {legalModal.open && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 sm:p-6">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden relative">
+                        <div className="flex justify-between items-center p-4 sm:px-6 border-b border-gray-200 bg-gray-50">
+                            <h2 className="text-xl font-bold text-gray-800 uppercase tracking-wide">
+                                {legalModal.type === 'terminos' && 'Términos y Condiciones'}
+                                {legalModal.type === 'privacidad' && 'Política de Privacidad'}
+                                {legalModal.type === 'sla' && 'Acuerdo de Nivel de Servicio (SLA)'}
+                            </h2>
+                            <button 
+                                onClick={() => setLegalModal({ open: false, type: '' })} 
+                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto w-full relative document-modal-content">
+                            {legalModal.type === 'terminos' && <Terminos />}
+                            {legalModal.type === 'privacidad' && <Privacidad />}
+                            {legalModal.type === 'sla' && <SLA />}
+                        </div>
+
+                        <div className="p-4 sm:px-6 border-t border-gray-200 bg-white flex justify-end">
+                            <button 
+                                onClick={() => setLegalModal({ open: false, type: '' })} 
+                                className="bg-atlas-900 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-atlas-800 transition-colors shadow-md"
+                            >
+                                Entendido, cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="mb-8 flex items-center gap-2">
                     <Link to="/catalogo" className="text-gray-500 flex items-center gap-1 text-sm font-medium hover:text-atlas-900 transition-colors"><ArrowLeft size={16} /> Volver</Link>
@@ -315,7 +363,6 @@ const Checkout = () => {
                                     </select>
                                 </div>
 
-                                {/* --- CAJA DE TEXTO DE NOTAS --- */}
                                 <div className="md:col-span-2 mt-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Notas del pedido (Opcional)</label>
                                     <textarea 
@@ -377,9 +424,48 @@ const Checkout = () => {
                                 <div className="flex justify-between"><span>Neto</span><span>${neto.toLocaleString('es-CL')}</span></div>
                                 <div className="flex justify-between"><span>IVA (19%)</span><span>${iva.toLocaleString('es-CL')}</span></div>
                             </div>
-                            <div className="flex justify-between items-center border-t border-gray-200 mt-4 pt-4 mb-6"><span className="text-lg font-bold text-gray-900">Total</span><span className="text-2xl font-bold text-atlas-900">${totalConEnvio.toLocaleString('es-CL')}</span></div>
+                            
+                            <div className="flex justify-between items-center border-t border-gray-200 mt-4 pt-4 mb-4">
+                                <span className="text-lg font-bold text-gray-900">Total</span>
+                                <span className="text-2xl font-bold text-atlas-900">${totalConEnvio.toLocaleString('es-CL')}</span>
+                            </div>
 
-                            <button onClick={handleCrearOrden} disabled={procesando} className="w-full bg-atlas-900 text-white font-bold py-4 rounded-xl hover:bg-atlas-800 shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+                            {/* CHECKBOX DE TÉRMINOS Y CONDICIONES (COMPLIANCE B2B) */}
+                            <div className="flex items-start gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
+                                <input
+                                    type="checkbox"
+                                    id="accept_terms"
+                                    name="accept_terms"
+                                    checked={datos.accept_terms}
+                                    onChange={handleChange}
+                                    className="mt-1 w-5 h-5 text-atlas-600 border-gray-300 rounded focus:ring-atlas-500 cursor-pointer"
+                                />
+                                <label htmlFor="accept_terms" className="text-xs text-gray-600 leading-relaxed">
+                                    Al confirmar esta compra, declaro que he leído y acepto expresamente los{' '}
+                                    <button type="button" onClick={() => setLegalModal({ open: true, type: 'terminos' })} className="font-bold text-atlas-600 hover:text-atlas-900 underline">
+                                        Términos y Condiciones
+                                    </button>
+                                    , la{' '}
+                                    <button type="button" onClick={() => setLegalModal({ open: true, type: 'privacidad' })} className="font-bold text-atlas-600 hover:text-atlas-900 underline">
+                                        Política de Privacidad
+                                    </button>
+                                    {' '}y el{' '}
+                                    <button type="button" onClick={() => setLegalModal({ open: true, type: 'sla' })} className="font-bold text-atlas-600 hover:text-atlas-900 underline">
+                                        Acuerdo de Nivel de Servicio (SLA)
+                                    </button>
+                                    {' '}de Atlas Digital Tech.
+                                </label>
+                            </div>
+
+                            <button 
+                                onClick={handleCrearOrden} 
+                                disabled={procesando || !datos.accept_terms} 
+                                className={`w-full font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg
+                                    ${procesando || !datos.accept_terms 
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                        : 'bg-atlas-900 text-white hover:bg-atlas-800'
+                                    }`}
+                            >
                                 {procesando ? <Loader2 className="animate-spin" /> : 'Confirmar Datos y Pagar'}
                             </button>
                             {errorRut && <p className="text-center text-xs text-red-500 mt-2">RUT Inválido.</p>}

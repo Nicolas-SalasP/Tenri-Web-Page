@@ -72,6 +72,9 @@ class OrderController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'customer_data' => 'required|array',
             'customer_data.region' => 'required|string',
+            'terms_accepted' => 'required|accepted',
+        ], [
+            'terms_accepted.accepted' => 'Debes aceptar los términos y condiciones para procesar la compra.'
         ]);
 
         try {
@@ -165,6 +168,8 @@ class OrderController extends Controller
                 'shipping_address' => $request->shipping_address,
                 'customer_data' => $request->customer_data,
                 'notes' => $request->notes,
+                'terms_accepted_at' => now(),
+                'terms_accepted_ip' => $request->ip(),
             ]);
 
             foreach ($itemsToInsert as $itemData) {
