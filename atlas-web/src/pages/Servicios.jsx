@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Code, Server, ShieldCheck, CheckCircle, ArrowRight, Send } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
+import { Code, Server, ShieldCheck, CheckCircle, ArrowRight } from 'lucide-react';
 
 const Servicios = () => {
     const { hash } = useLocation();
@@ -51,9 +51,9 @@ const Servicios = () => {
                     img="/desarrollo.webp"
                     reverse={false}
                     zoom={false}
+                    linkValue="desarrollo"
                 />
 
-                {/* SERVICIO 2: INFRAESTRUCTURA (Imagen Rack) */}
                 <ServiceSection
                     id="redes"
                     title="Redes & Infraestructura IT"
@@ -69,9 +69,9 @@ const Servicios = () => {
                     img="/estructura.webp"
                     reverse={true}
                     zoom={true}
+                    linkValue="redes"
                 />
 
-                {/* SERVICIO 3: SEGURIDAD (Imagen Cámara) */}
                 <ServiceSection
                     id="seguridad"
                     title="Seguridad Electrónica (CCTV)"
@@ -87,30 +87,14 @@ const Servicios = () => {
                     img="/seguridad.webp"
                     reverse={false}
                     zoom={true}
+                    linkValue="seguridad"
                 />
-
             </div>
-
-            {/* 3. FORMULARIO DE COTIZACIÓN */}
-            <section className="bg-gray-50 py-20 border-t border-gray-200" id="cotizar">
-                <div className="max-w-4xl mx-auto px-4">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold text-tenri-900 mb-4">Solicitar Cotización</h2>
-                        <p className="text-gray-600">Cuéntanos sobre tu proyecto. Te responderemos en menos de 24 horas con una propuesta técnica.</p>
-                    </div>
-
-                    <div className="bg-white p-8 md:p-10 rounded-2xl shadow-lg border border-gray-100">
-                        <QuoteForm />
-                    </div>
-                </div>
-            </section>
-
         </div>
     );
 };
 
-/* --- SUBCOMPONENTES --- */
-const ServiceSection = ({ id, title, desc, icon, color, features, img, reverse, zoom }) => (
+const ServiceSection = ({ id, title, desc, icon, color, features, img, reverse, zoom, linkValue }) => (
     <div id={id} className={`flex flex-col lg:flex-row gap-12 items-center scroll-mt-32 ${reverse ? 'lg:flex-row-reverse' : ''}`}>
         <div className="flex-1">
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-lg ${color}`}>
@@ -128,9 +112,9 @@ const ServiceSection = ({ id, title, desc, icon, color, features, img, reverse, 
                     </li>
                 ))}
             </ul>
-            <a href="#cotizar" className="mt-8 inline-flex items-center gap-2 text-tenri-500 font-bold hover:gap-3 transition-all">
+            <Link to={`/contacto?servicio=${linkValue}`} className="mt-8 inline-flex items-center gap-2 text-tenri-500 font-bold hover:gap-3 transition-all">
                 Solicitar este servicio <ArrowRight size={20} />
-            </a>
+            </Link>
         </div>
         <div className="flex-1 w-full">
             <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-[4/3] group">
@@ -145,86 +129,5 @@ const ServiceSection = ({ id, title, desc, icon, color, features, img, reverse, 
         </div>
     </div>
 );
-
-const QuoteForm = () => {
-    const [formData, setFormData] = useState({
-        nombre: '',
-        email: '',
-        servicio: 'desarrollo',
-        mensaje: ''
-    });
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        alert("¡Mensaje enviado! (Simulación)\nPronto conectaremos esto con tu Backend.");
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre Completo</label>
-                    <input
-                        required
-                        type="text"
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-tenri-300 focus:border-transparent outline-none transition-all"
-                        placeholder="Ej: Juan Pérez"
-                        value={formData.nombre}
-                        onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Correo Electrónico</label>
-                    <input
-                        required
-                        type="email"
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-tenri-300 focus:border-transparent outline-none transition-all"
-                        placeholder="juan@empresa.com"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    />
-                </div>
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Servicio de Interés</label>
-                <select
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-tenri-300 focus:border-transparent outline-none bg-white"
-                    value={formData.servicio}
-                    onChange={(e) => setFormData({ ...formData, servicio: e.target.value })}
-                >
-                    <option value="desarrollo">Desarrollo Web / Software</option>
-                    <option value="redes">Redes & Infraestructura</option>
-                    <option value="seguridad">Cámaras de Seguridad (CCTV)</option>
-                    <option value="hardware">Compra de Hardware</option>
-                    <option value="otro">Otro / Consulta General</option>
-                </select>
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Detalles del Proyecto</label>
-                <textarea
-                    required
-                    rows="4"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-tenri-300 focus:border-transparent outline-none transition-all resize-none"
-                    placeholder="Cuéntanos qué necesitas: ¿Cuántas cámaras? ¿Qué tipo de software?..."
-                    value={formData.mensaje}
-                    onChange={(e) => setFormData({ ...formData, mensaje: e.target.value })}
-                ></textarea>
-            </div>
-
-            <button
-                type="submit"
-                className="w-full bg-tenri-900 text-white font-bold py-4 rounded-lg hover:bg-tenri-800 transition-all shadow-lg flex items-center justify-center gap-2"
-            >
-                <Send size={20} /> Enviar Solicitud de Cotización
-            </button>
-
-            <p className="text-center text-xs text-gray-400 mt-4">
-                Al enviar este formulario aceptas ser contactado por el equipo de Tenri Spa.
-            </p>
-        </form>
-    );
-};
 
 export default Servicios;

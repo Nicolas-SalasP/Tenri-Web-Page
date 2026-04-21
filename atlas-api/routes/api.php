@@ -16,6 +16,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\ContactController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,6 +47,9 @@ Route::get('/system-status', [SettingController::class, 'publicStatus']);
 // Checkout & Pagos (Guest & User)
 Route::post('/orders', [OrderController::class, 'store']);
 Route::any('/webpay/return', [PaymentController::class, 'commitWebpay']);
+
+// Contacto
+Route::post('/contacto', [ContactController::class, 'submit']);
 
 // ==============================================================================
 // INTEGRACIÓN S2S CON ERP CONTABLE (Vía API Key)

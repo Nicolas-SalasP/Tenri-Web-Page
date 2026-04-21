@@ -61,6 +61,7 @@ const Navbar = () => {
                                 <Link to="/proyectos" className="hover:text-tenri-300 transition-colors px-3 py-2 rounded-md text-sm font-bold">Proyectos</Link>
                                 <Link to="/catalogo" className="hover:text-tenri-300 transition-colors px-3 py-2 rounded-md text-sm font-bold">Tienda</Link>
                                 <Link to="/servicios" className="hover:text-tenri-300 transition-colors px-3 py-2 rounded-md text-sm font-bold">Servicios</Link>
+                                <Link to="/contacto" className="hover:text-tenri-300 transition-colors px-3 py-2 rounded-md text-sm font-bold">Contacto</Link>
                             </div>
                         </div>
 
@@ -159,6 +160,8 @@ const Navbar = () => {
                             <Link to="/" onClick={() => setIsOpen(false)} className="block px-3 py-3 rounded-xl text-base font-bold text-gray-300 hover:text-white hover:bg-tenri-800 transition-colors">Inicio</Link>
                             <Link to="/proyectos" onClick={() => setIsOpen(false)} className="block px-3 py-3 rounded-xl text-base font-bold text-gray-300 hover:text-white hover:bg-tenri-800 transition-colors">Proyectos</Link>
                             <Link to="/catalogo" onClick={() => setIsOpen(false)} className="block px-3 py-3 rounded-xl text-base font-bold text-gray-300 hover:text-white hover:bg-tenri-800 transition-colors">Tienda</Link>
+                            <Link to="/servicios" onClick={() => setIsOpen(false)} className="block px-3 py-3 rounded-xl text-base font-bold text-gray-300 hover:text-white hover:bg-tenri-800 transition-colors">Servicios</Link>
+                            <Link to="/contacto" onClick={() => setIsOpen(false)} className="block px-3 py-3 rounded-xl text-base font-bold text-gray-300 hover:text-white hover:bg-tenri-800 transition-colors">Contacto</Link>
 
                             {isAuthenticated ? (
                                 <div className="border-t border-tenri-800 mt-6 pt-6 pb-2 bg-tenri-800/30 rounded-2xl mx-2 px-2">

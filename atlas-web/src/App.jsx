@@ -26,6 +26,7 @@ const Recuperar = lazy(() => import('./pages/Recuperar'));
 const Maintenance = lazy(() => import('./pages/Maintenance'));
 const MisTickets = lazy(() => import('./pages/MisTickets'));
 const UserProfile = lazy(() => import('./pages/UserProfile')); 
+const Contacto = lazy(() => import('./pages/Contacto'));
 
 // Admin Imports
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
@@ -94,6 +95,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/proyectos" element={<Proyectos />} />
               <Route path="/catalogo" element={<Catalogo />} />
+              <Route path="/contacto" element={<Contacto />} />
               <Route path="/servicios" element={<Servicios />} />
               <Route path="/item/:type/:id" element={<ItemDetail />} /> 
               <Route path="/checkout/*" element={<Checkout />} />
