@@ -23,7 +23,7 @@ jobs:
 
       - name: 🏗️ Compilar Frontend (React)
         run: |
-          cd atlas-web
+          cd frontend
           npm install
           npm run build
 
@@ -33,7 +33,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./atlas-web/dist/
+          local-dir: ./frontend/dist/
           server-dir: /public_html/
 
       # ==========================================
@@ -46,7 +46,7 @@ jobs:
 
       - name: 📦 Instalar Dependencias y Comprimir Backend
         run: |
-          cd atlas-api
+          cd backend
           composer install --optimize-autoloader --no-dev
           # Comprimimos para que la subida tarde segundos en vez de horas
           zip -r ../backend.zip . -x "node_modules/*" -x "tests/*"
