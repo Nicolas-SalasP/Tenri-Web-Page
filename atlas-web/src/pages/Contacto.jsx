@@ -136,7 +136,7 @@ const Contacto = () => {
                                     </div>
                                     <div>
                                         <p className="font-semibold text-white mb-1">Llámanos</p>
-                                        <p className="text-gray-300 text-sm">+56 9 8225 3524</p>
+                                        <p className="text-gray-300 text-sm">+56 9 3709 4271</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-4 group">
