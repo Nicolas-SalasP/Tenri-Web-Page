@@ -22,7 +22,6 @@ class User extends Authenticatable
         'is_active',
         'google_id',
         'avatar',
-        'company_name',
         'phone',
         'address',
         'terms_accepted_at',
@@ -54,5 +53,10 @@ class User extends Authenticatable
     public function addresses()
     {
         return $this->hasMany(Address::class);
+    }
+
+    public function billingProfiles()
+    {
+        return $this->hasMany(BillingProfile::class);
     }
 }

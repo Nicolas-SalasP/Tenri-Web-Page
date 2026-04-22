@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosConfig';
 import { Toaster, toast } from 'react-hot-toast';
-import { User, Lock, Package, CreditCard, Shield, CheckCircle, MessageSquare, LayoutDashboard, MapPin } from 'lucide-react';
+import { User, Lock, Package, CreditCard, Shield, CheckCircle, MessageSquare, LayoutDashboard, MapPin, Briefcase, LogOut, Ticket } from 'lucide-react';
 import { useSearchParams, Link } from 'react-router-dom';
 
 import MiPerfil from '../components/perfil/MiPerfil';
@@ -13,6 +13,7 @@ import MisTickets from '../components/perfil/MisTickets';
 import MisDirecciones from '../components/perfil/MisDirecciones'; 
 import OrderDetailModal from '../components/perfil/OrderDetailModal';
 import EmailChangeModal from '../components/perfil/EmailChangeModal';
+import MisEmpresas from '../components/perfil/MisEmpresas';
 
 const UserProfile = () => {
     const { user } = useAuth();
@@ -61,6 +62,7 @@ const UserProfile = () => {
     const menuItems = [
         { id: 'general', icon: User, label: 'Mi Perfil' },
         { id: 'addresses', icon: MapPin, label: 'Mis Direcciones' },
+        { id: 'empresas', icon: Briefcase, label: 'Mis Empresas' },
         { id: 'security', icon: Lock, label: 'Seguridad' },
         { id: 'orders', icon: Package, label: 'Mis Pedidos' },
         { id: 'subscription', icon: CreditCard, label: 'Suscripción ERP' },
@@ -119,7 +121,8 @@ const UserProfile = () => {
 
                     <div className="md:col-span-9">
                         {activeTab === 'general' && <MiPerfil user={user} onOpenEmailModal={() => setShowEmailModal(true)} />}
-                        {activeTab === 'addresses' && <MisDirecciones />} {/* <--- AQUÍ SE RENDERIZA EL COMPONENTE */}
+                        {activeTab === 'addresses' && <MisDirecciones />}
+                        {activeTab === 'empresas' && <MisEmpresas />} 
                         {activeTab === 'security' && <MiSeguridad />}
                         {activeTab === 'orders' && <MisPedidos orders={orders} loading={loadingData} onSelectOrder={setSelectedOrder} />}
                         {activeTab === 'subscription' && <MisSuscripciones subscription={subscription} loading={loadingData} />}

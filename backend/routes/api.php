@@ -17,6 +17,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\BillingProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -56,13 +57,9 @@ Route::post('/contacto', [ContactController::class, 'submit']);
 // ==============================================================================
 Route::middleware(['erp.api.key'])->post('/internal/erp/validate-login', function (Illuminate\Http\Request $request) {
     $user = User::where('email', $request->email)->first();
-
-    // 1. Validar si existe y la contraseña es correcta
     if (!$user || !Hash::check($request->password, $user->password)) {
         return response()->json(['success' => false, 'message' => 'Credenciales inválidas'], 401);
     }
-
-    // 2. Todo OK, enviamos la info al ERP
     return response()->json([
         'success' => true,
         'user' => [
@@ -124,6 +121,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payment/transfer', [PaymentController::class, 'payWithTransfer']);
     Route::post('/payment/webpay', [PaymentController::class, 'initWebpay']);
 
+    // Rutas de Facturación (Empresas)
+    Route::get('/billing-profiles', [BillingProfileController::class, 'index']);
+    Route::post('/billing-profiles', [BillingProfileController::class, 'store']);
+    Route::put('/billing-profiles/{id}', [BillingProfileController::class, 'update']);
+    Route::delete('/billing-profiles/{id}', [BillingProfileController::class, 'destroy']);
 
     // ==============================================================================
     // ZONA ADMINISTRADOR (Requieren Login + Rol Admin)

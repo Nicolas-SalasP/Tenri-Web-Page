@@ -9,10 +9,20 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-
-        $users = User::withCount('tickets')
+        $users = tap(User::withCount('tickets')
+            ->with([
+                'billingProfiles' => function ($query) {
+                    $query->where('is_default', true);
+                }
+            ])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get(), function ($users) {
+                $users->transform(function ($user) {
+                    $defaultProfile = $user->billingProfiles->first();
+                    $user->company_name = $defaultProfile ? $defaultProfile->business_name : null;
+                    return $user;
+                });
+            });
 
         return response()->json($users);
     }
@@ -20,10 +30,10 @@ class UserController extends Controller
     public function show(Request $request, $id)
     {
         $user = User::with([
-            'tickets' => function($query) {
+            'tickets' => function ($query) {
                 $query->orderBy('created_at', 'desc');
             },
-            'orders' => function($query) {
+            'orders' => function ($query) {
                 $query->orderBy('created_at', 'desc');
             }
         ])->find($id);
@@ -38,14 +48,15 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $userToUpdate = User::find($id);
-        if (!$userToUpdate) return response()->json(['message' => 'Usuario no encontrado'], 404);
+        if (!$userToUpdate)
+            return response()->json(['message' => 'Usuario no encontrado'], 404);
 
         $currentUser = $request->user();
 
         $userPerms = is_string($currentUser->permissions) ? json_decode($currentUser->permissions, true) : ($currentUser->permissions ?? []);
         $rolePerms = is_string($currentUser->role->permissions) ? json_decode($currentUser->role->permissions, true) : ($currentUser->role->permissions ?? []);
         $currentPermissions = ($currentUser->permissions !== null) ? $userPerms : $rolePerms;
-        
+
         $isSuperAdmin = isset($currentPermissions['all']) && $currentPermissions['all'] === true;
 
         if ($userToUpdate->email === 'nsalas@tenri.cl' && !$isSuperAdmin) {
@@ -67,7 +78,7 @@ class UserController extends Controller
                     return response()->json(['message' => 'Acceso denegado. No puedes otorgar el permiso de Acceso Total.'], 403);
                 }
             }
-            
+
             $targetPerms = is_string($userToUpdate->permissions) ? json_decode($userToUpdate->permissions, true) : ($userToUpdate->permissions ?? []);
             if (isset($targetPerms['all']) && $targetPerms['all'] === true) {
                 return response()->json(['message' => 'Acceso denegado. No puedes modificar a un usuario con Acceso Total.'], 403);
@@ -76,17 +87,16 @@ class UserController extends Controller
 
         $request->validate([
             'name' => 'required|string',
-            'email' => 'required|email|unique:users,email,'.$id,
+            'email' => 'required|email|unique:users,email,' . $id,
             'role_id' => 'required|integer',
             'is_active' => 'required|boolean',
-            'permissions' => 'nullable' 
+            'permissions' => 'nullable'
         ]);
 
         $dataToUpdate = $request->only([
-            'name', 
-            'email', 
-            'is_active', 
-            'company_name', 
+            'name',
+            'email',
+            'is_active',
             'phone'
         ]);
 
