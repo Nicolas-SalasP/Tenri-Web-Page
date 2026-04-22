@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Search, User, Mail, Phone,
-    Loader2, ShieldCheck, XCircle, AlertTriangle, CheckCircle, Truck, MapPin, Star, X
+    Loader2, ShieldCheck, XCircle, AlertTriangle, CheckCircle, Truck, MapPin, Star, X, Building2
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -67,7 +67,7 @@ const Checkout = () => {
 
     // --- ESTADO UNIFICADO ---
     const [datos, setDatos] = useState({
-        nombre: '', apellido: '', email: '',
+        nombre: '', email: '',
         telefono: '', rutPersonal: '',
         direccion: '', numero: '', depto: '',
         region: "Metropolitana",
@@ -81,26 +81,52 @@ const Checkout = () => {
     const [costoEnvio, setCostoEnvio] = useState(TARIFAS_ENVIO["Metropolitana"]);
     const [mapCoords, setMapCoords] = useState({ lat: -33.4489, lng: -70.6693 });
     const [misDirecciones, setMisDirecciones] = useState([]);
+    const [misEmpresas, setMisEmpresas] = useState([]);
     const [direccionSeleccionadaId, setDireccionSeleccionadaId] = useState(null);
+    const [empresaSeleccionadaId, setEmpresaSeleccionadaId] = useState('nueva');
 
     const comunasDisponibles = REGIONES_CHILE[datos.region] || [];
 
     useEffect(() => {
         if (isAuthenticated && user) {
+            let cleanPhone = user.phone || '';
+            if (cleanPhone.startsWith('+56')) {
+                cleanPhone = cleanPhone.substring(3).trim();
+            }
+
             setDatos(prev => ({
                 ...prev,
                 nombre: user.name || '',
                 email: user.email || '',
+                telefono: cleanPhone,
                 rutPersonal: user.rut ? formatearRut(user.rut) : ''
             }));
 
-            const fetchMisDirecciones = async () => {
+            const fetchDatosUsuario = async () => {
                 try {
-                    const res = await api.get('/addresses');
-                    if (res.data && res.data.length > 0) setMisDirecciones(res.data);
-                } catch (error) { console.error(error); }
+                    const [resDir, resEmp] = await Promise.all([
+                        api.get('/addresses'),
+                        api.get('/billing-profiles')
+                    ]);
+                    
+                    if (resDir.data && resDir.data.length > 0) {
+                        setMisDirecciones(resDir.data);
+                    }
+                    
+                    if (resEmp.data && resEmp.data.length > 0) {
+                        setMisEmpresas(resEmp.data);
+                        const defaultEmp = resEmp.data.find(e => e.is_default) || resEmp.data[0];
+                        setEmpresaSeleccionadaId(defaultEmp.id.toString());
+                        setDatos(prev => ({
+                            ...prev,
+                            rutEmpresa: defaultEmp.rut,
+                            razonSocial: defaultEmp.business_name,
+                            giro: defaultEmp.business_line
+                        }));
+                    }
+                } catch (error) { console.error("Error cargando perfil:", error); }
             };
-            fetchMisDirecciones();
+            fetchDatosUsuario();
         }
     }, [isAuthenticated, user]);
 
@@ -119,6 +145,25 @@ const Checkout = () => {
 
         setCostoEnvio(TARIFAS_ENVIO[regionValida] || 7990);
         buscarDireccionEnMapaAutomatico(addr.address, addr.number, addr.commune, regionValida);
+    };
+
+    const handleSeleccionarEmpresa = (e) => {
+        const id = e.target.value;
+        setEmpresaSeleccionadaId(id);
+        
+        if (id === 'nueva') {
+            setDatos(prev => ({ ...prev, rutEmpresa: '', razonSocial: '', giro: '' }));
+        } else {
+            const emp = misEmpresas.find(e => e.id.toString() === id);
+            if (emp) {
+                setDatos(prev => ({
+                    ...prev,
+                    rutEmpresa: emp.rut,
+                    razonSocial: emp.business_name,
+                    giro: emp.business_line
+                }));
+            }
+        }
     };
 
     const getCartImage = (item) => {
@@ -140,6 +185,7 @@ const Checkout = () => {
         }
 
         if (['direccion', 'numero', 'region', 'comuna'].includes(name)) setDireccionSeleccionadaId(null);
+        if (['rutEmpresa', 'razonSocial', 'giro'].includes(name)) setEmpresaSeleccionadaId('nueva');
 
         setDatos(prev => {
             const nuevosDatos = { ...prev, [name]: value };
@@ -210,11 +256,16 @@ const Checkout = () => {
                 shipping_cost: costoEnvio,
                 shipping_address: `${datos.direccion} ${datos.numero ? '#' + datos.numero : ''} ${datos.depto ? 'Dpto ' + datos.depto : ''}, ${datos.comuna}, ${datos.region}`,
                 customer_data: {
-                    nombre: `${datos.nombre} ${datos.apellido}`,
+                    nombre: datos.nombre,
                     rut: rutAValidar,
                     email: datos.email,
                     phone: `+56 ${datos.telefono}`,
-                    region: datos.region
+                    region: datos.region,
+                    tipo_documento: datos.tipoDocumento === 'factura' ? 'Factura' : 'Boleta',
+                    ...(datos.tipoDocumento === 'factura' && {
+                        razon_social: datos.razonSocial,
+                        giro: datos.giro
+                    })
                 },
                 notes: datos.notas,
                 terms_accepted: true
@@ -305,8 +356,9 @@ const Checkout = () => {
                         <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                             <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-tenri-900 text-white flex items-center justify-center text-xs">1</span> Datos Personales</h2>
                             <div className="grid md:grid-cols-2 gap-4">
-                                <Input label="Nombre" name="nombre" value={datos.nombre} onChange={handleChange} icon={<User size={14} />} />
-                                <Input label="Apellido" name="apellido" value={datos.apellido} onChange={handleChange} />
+                                <div className="md:col-span-2">
+                                    <Input label="Nombre y Apellido" name="nombre" value={datos.nombre} onChange={handleChange} icon={<User size={14} />} />
+                                </div>
                                 <Input label="Email" name="email" type="email" value={datos.email} onChange={handleChange} icon={<Mail size={14} />} />
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono <span className="text-red-500">*</span></label>
@@ -400,8 +452,34 @@ const Checkout = () => {
                             </div>
                             {datos.tipoDocumento === 'factura' && (
                                 <div className="space-y-4 bg-gray-50 p-4 rounded-lg border-l-4 border-tenri-300 animate-in fade-in">
-                                    <div><label className="block text-sm font-medium text-gray-700 mb-1">RUT Empresa <span className="text-red-500">*</span></label><input type="text" value={datos.rutEmpresa} onChange={(e) => handleRutChange(e, 'rutEmpresa')} className="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none" placeholder="76.xxx.xxx-x" /></div>
-                                    <div className="grid md:grid-cols-2 gap-4"><Input label="Razón Social" name="razonSocial" value={datos.razonSocial} onChange={handleChange} /><Input label="Giro" name="giro" value={datos.giro} onChange={handleChange} /></div>
+                                    {isAuthenticated && misEmpresas.length > 0 && (
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                                                <Building2 size={16} className="text-tenri-600"/> Selecciona tu Empresa
+                                            </label>
+                                            <select 
+                                                value={empresaSeleccionadaId} 
+                                                onChange={handleSeleccionarEmpresa}
+                                                className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white cursor-pointer focus:ring-2 focus:ring-tenri-900 outline-none transition-all shadow-sm font-medium text-gray-800"
+                                            >
+                                                {misEmpresas.map(emp => (
+                                                    <option key={emp.id} value={emp.id}>{emp.business_name} ({emp.rut})</option>
+                                                ))}
+                                                <option value="nueva">+ Ingresar otra empresa (Ingreso Manual)</option>
+                                            </select>
+                                        </div>
+                                    )}
+                                    <div className={`space-y-4 transition-all duration-300 ${empresaSeleccionadaId !== 'nueva' && misEmpresas.length > 0 ? 'opacity-60 pointer-events-none' : ''}`}>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">RUT Empresa <span className="text-red-500">*</span></label>
+                                            <input type="text" value={datos.rutEmpresa} onChange={(e) => handleRutChange(e, 'rutEmpresa')} className="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-tenri-300" placeholder="76.xxx.xxx-x" />
+                                        </div>
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <Input label="Razón Social" name="razonSocial" value={datos.razonSocial} onChange={handleChange} />
+                                            <Input label="Giro" name="giro" value={datos.giro} onChange={handleChange} />
+                                        </div>
+                                    </div>
+
                                 </div>
                             )}
                         </section>
@@ -430,7 +508,6 @@ const Checkout = () => {
                                 <span className="text-2xl font-bold text-tenri-900">${totalConEnvio.toLocaleString('es-CL')}</span>
                             </div>
 
-                            {/* CHECKBOX DE TÉRMINOS Y CONDICIONES (COMPLIANCE B2B) */}
                             <div className="flex items-start gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
                                 <input
                                     type="checkbox"
