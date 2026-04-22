@@ -15,6 +15,7 @@ use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\BillingProfile;
 
 class DatabaseSeeder extends Seeder
 {
@@ -51,41 +52,69 @@ class DatabaseSeeder extends Seeder
         // ---------------------------------------------------
         // 2. ROLES
         // ---------------------------------------------------
-        // Rol ID 1: Admin, Rol ID 2: Cliente
         $roleAdmin = Role::create(['name' => 'admin', 'permissions' => json_encode(['all' => true])]);
         $roleClient = Role::create(['name' => 'client', 'permissions' => json_encode(['buy' => true, 'open_ticket' => true])]);
 
         // ---------------------------------------------------
-        // 3. USUARIOS
+        // 3. USUARIOS Y PERFILES DE FACTURACIÓN (EMPRESAS)
         // ---------------------------------------------------
+        
+        // ADMIN
         $admin = User::create([
             'role_id' => $roleAdmin->id,
-            'name' => 'Nicolás Salas',
-            'rut' => '11.111.111-1',
+            'name' => 'Nicolas Salas',
+            'rut' => '26.328.580-8',
             'email' => 'nicolas@tenri.cl',
             'password' => Hash::make('password'),
-            'company_name' => 'Tenri Spa',
             'avatar' => 'https://ui-avatars.com/api/?name=Nicolas+Salas&background=0F172A&color=fff&bold=true'
         ]);
+        BillingProfile::create([
+            'user_id' => $admin->id,
+            'rut' => '78.149.179-9',
+            'business_name' => 'Tenri Spa',
+            'business_line' => 'Desarrollo de Software y Tecnología',
+            'address' => 'Pudahuel',
+            'city' => 'Santiago',
+            'email_dte' => 'contacto@tenri.cl',
+            'is_default' => true
+        ]);
 
+        // CLIENTE 1
         $client1 = User::create([
             'role_id' => $roleClient->id,
             'name' => 'Procesadora Insuban Spa',
             'rut' => '78.730.890-2',
             'email' => 'contacto@insuban.cl',
             'password' => Hash::make('password'),
-            'company_name' => 'Insuban',
             'avatar' => 'https://ui-avatars.com/api/?name=Insuban&background=2563EB&color=fff&bold=true'
         ]);
+        BillingProfile::create([
+            'user_id' => $client1->id,
+            'rut' => '78.730.890-2',
+            'business_name' => 'Procesadora Insuban Spa',
+            'business_line' => 'Procesamiento de Alimentos',
+            'address' => 'Av. Industrial 1234',
+            'city' => 'Santiago',
+            'is_default' => true
+        ]);
 
+        // CLIENTE 2
         $client2 = User::create([
             'role_id' => $roleClient->id,
             'name' => 'Tsuki Ink',
             'rut' => '33.333.333-3',
             'email' => 'ventas@tsuki.cl',
             'password' => Hash::make('password'),
-            'company_name' => 'Tsuki Ink Store',
             'avatar' => 'https://ui-avatars.com/api/?name=Tsuki+Ink&background=DB2777&color=fff&bold=true'
+        ]);
+        BillingProfile::create([
+            'user_id' => $client2->id,
+            'rut' => '33.333.333-3',
+            'business_name' => 'Tsuki Ink Store',
+            'business_line' => 'Venta de Insumos de Tatuaje',
+            'address' => 'Providencia 456',
+            'city' => 'Santiago',
+            'is_default' => true
         ]);
 
         // ---------------------------------------------------
